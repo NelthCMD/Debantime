@@ -94,6 +94,11 @@
     <button onclick="desespoir()">Crier au désespoir</button>
     <button onclick="resetGame()" style="background:#ff5555">Réinitialiser</button>
 
+    <div id="event-timer"
+     style="position:fixed;bottom:10px;left:10px;background:#1a1a2e;color:#f1fa8c;padding:10px 16px;border-radius:12px;font-size:0.9em;box-shadow:0 0 8px #000;">
+      ⏳ Prochain événement dans : <span id="eventCountdown">10:00</span> minutes
+    </div>
+
   <div id="event"></div>
 
 <div id="event-log"
@@ -892,6 +897,8 @@ const last = localStorage.getItem("lastSeen");
 if(last && localStorage.getItem("enableOffline")==="1"){
   cookies += Math.floor((Date.now()-last)/1000)*clickPower;
 }
+
+
 
 </script>
 </body>
