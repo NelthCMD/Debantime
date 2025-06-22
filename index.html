@@ -26,9 +26,54 @@
     .sidebar-left h3{color:#50fa7b}
     .sidebar details{margin-bottom:10px}
     .sidebar-left ul{padding-left:20px}
+    .talent-grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.talent-card{
+  width:90px;           /* 110 → 90 px */
+  height:90px;
+  background:#1a1a2e;
+  border:2px solid #444;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.7em;      /* 2 → 1.7 em */
+  color:#fff;
+  box-shadow:0 0 10px #0008;
+  cursor:pointer;
+  transition:transform .2s,border-color .2s;
+  position:relative;
+}
+.talent-card::after{
+  content:attr(data-name);
+  font-size:.6em;       /* 0.7 → 0.6 em */
+  color:#f1fa8c;
+  position:absolute;
+  bottom:-1.4em;
+  width:100%;
+  text-align:center;
+  line-height:1.1em;
+}
+
+.event-message {
+  transition: opacity 1s ease;
+}
+
+.event-message.fading {
+  opacity: 0;
+}
+
+
   </style>
 </head>
 <body>
+  <div id="floating-events" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></div>
   <h1>⏳ Temps restant avant le déban 😭</h1>
   <div class="countdown-container">
     <div class="time-box"><h2 id="days">0</h2><span>Jours</span><div class="bar-container"><div class="bar" id="bar-days"></div></div></div>
@@ -43,13 +88,11 @@
     <div class="cookie" onclick="clickCookie()"></div>
     <div id="cookie-count">Cookies : 0</div>
     <div id="stats">CPS: 0 | Clics: 0 | Prestige: 0x</div>
-    <button onclick="buyUpgrade()">Acheter Auto-Click (10 cookies)</button>
+    <button onclick="buyUpgrade()">Acheter Auto-Click (<span id="autoCost">10</span> cookies)</button>
     <button onclick="buyMultiplier()">Multiplicateur (coût : <span id='multCost'>50</span>)</button>
     <button onclick="prestige()">Prestige (10 000 cookies)</button>
     <button onclick="desespoir()">Crier au désespoir</button>
     <button onclick="resetGame()" style="background:#ff5555">Réinitialiser</button>
-
-<button onclick="toggleSecret()">Activer mode secret</button>
 
   <div id="event"></div>
 
@@ -63,6 +106,7 @@
     <div>🔁 Auto-clickers : <span id="infoAuto">0</span></div>
     <div>👆 Puissance clic : <span id="infoClic">1</span></div>
     <div>📈 Multiplicateur : <span id="infoMulti">1</span>x</div>
+    <div>🍀 Chance : <span id="infoChance">1.0</span>x</div>
     <h3>🎲 Rareté des événements</h3>
     <details><summary>🟢 Commun : 60%</summary><ul><li>Bonus mineurs (cookies, clics…)</li></ul></details>
     <details><summary>🔵 Rare : 30%</summary><ul><li>Multiplicateurs légers, auto-clicker bonus…</li></ul></details>
@@ -102,6 +146,35 @@
   </ul>
   </div>
 
+<!-- === TALENT TREE ================================================= -->
+<section id="talent-tree-section" style="margin-top:40px">
+  <h2 style="text-align:center;color:#00d8ff">✨ Arbre de Talents</h2>
+  <div style="text-align:center;margin-bottom:20px;color:#50fa7b">
+    Points disponibles : <span id="talentPoints">0</span>
+  </div>
+
+  <!-- Améliorations classiques -->
+  <h3 style="color:#f1fa8c;text-align:center">🧩 Améliorations</h3>
+  <div class="talent-grid">
+    <div class="talent-card"        onclick="unlockTalent(0)" data-name="Force du clic">💪</div>
+    <div class="talent-card locked" onclick="unlockTalent(1)" data-name="AutoPro">⚙️</div>
+    <div class="talent-card locked" onclick="unlockTalent(2)" data-name="Cookies offline">🌙</div>
+    <div class="talent-card locked" onclick="unlockTalent(3)" data-name="Événements +">🎁</div>
+    <div class="talent-card locked" onclick="unlockTalent(4)" data-name="Double prestige">🔄</div>
+  </div>
+
+  <!-- Talents spéciaux -->
+  <h3 style="color:#f1fa8c;text-align:center;margin-top:25px">🧪 Spéciaux</h3>
+  <div class="talent-grid">
+    <div class="talent-card locked" onclick="unlockTalent(5)" data-name="Clic fantôme">👻</div>
+    <div class="talent-card locked" onclick="unlockTalent(6)" data-name="Commentateur">💬</div>
+    <div class="talent-card locked" onclick="unlockTalent(7)" data-name="Inertie">🧊</div>
+    <div class="talent-card locked" onclick="unlockTalent(8)" data-name="Événement truqué">🎲</div>
+    <div class="talent-card locked" onclick="unlockTalent(9)" data-name="Clic miroir">🧤</div>
+  </div>
+</section>
+<!-- ================================================================= -->
+
   <script>
 // === Script JavaScript complet ===
 
@@ -139,7 +212,10 @@ let achievements = [];
 let rapidClicks = 0;
 document.addEventListener("click", () => {
   rapidClicks++;
-  setTimeout(() => rapidClicks = Math.max(0, rapidClicks - 1), 10000);
+  setTimeout(() => {
+  div.classList.add("fading");
+  setTimeout(() => div.remove(), 1000);
+}, duration);
 });
 const eventLog = [];
 
@@ -147,10 +223,11 @@ function updateDisplay() {
   document.getElementById("cookie-count").textContent = "Cookies : " + Math.floor(cookies);
   document.getElementById("stats").textContent = `CPS: ${cps.toFixed(1)} | Clics: ${totalClicks} | Prestige: ${prestigeBonus}x`;
   infoPrestige.textContent = prestigeBonus;
-  infoAuto.textContent = autoClickers;
+  document.getElementById("autoCost").textContent = 10 * Math.pow(2, autoClickers);
   infoClic.textContent = clickPower;
   infoMulti.textContent = globalMultiplier;
   multCost.textContent = multiplierCost;
+  infoChance.textContent = (window.eventRarityBoost||1).toFixed(1);
 }
 
 function clickCookie() {
@@ -158,11 +235,12 @@ function clickCookie() {
   totalClicks++;
   updateDisplay();
 }
-function buyUpgrade() {
-  if (cookies < 10) return alert("Pas assez de cookies !");
-  cookies -= 10;
+function buyUpgrade(){
+  const cost = 10 * Math.pow(2, autoClickers);          // coût actuel
+  if(cookies < cost) return alert(`Il te faut ${cost} cookies !`);
+  cookies -= cost;
   autoClickers++;
-  updateDisplay();
+  updateDisplay();                                      // met à jour l’UI
 }
 function buyMultiplier() {
   if (cookies < multiplierCost) return alert("Pas assez de cookies !");
@@ -172,9 +250,14 @@ function buyMultiplier() {
   updateDisplay();
 }
 function prestige() {
-  if (cookies < 10000) return alert("Encore trop faible pour transcender.");
+  let prestigeCost = 10000 * Math.pow(2, prestigeBonus);
+  if (cookies < prestigeCost) return alert(`Il te faut ${prestigeCost} cookies pour transcender.`);
   if (confirm("Prestige ? Tu perds tout mais gagnes un bonus permanent !")) {
-    prestigeBonus++;
+    prestigeBonus+= window.doublePrestige ? 2 : 1;
+    talentPoints++;
+  saveTalents();
+  document.getElementById("talentPoints").textContent = talentPoints;
+
     cookies = 0;
     autoClickers = prestigeBonus; // +1 autoClicker par prestige
     clickPower = 1 + prestigeBonus; // +1 puissance de clic par prestige
@@ -209,18 +292,71 @@ function prestige() {
     updateDisplay();
   }
 }
-function resetGame() {
+function resetGame(){
   if (!confirm("Tout effacer ?")) return;
-  localStorage.setItem("resetCount", (parseInt(localStorage.getItem("resetCount") || "0") + 1).toString());
+
+  /* 👉 1) réinitialise complètement l’arbre */
+  resetTalents();                                   // ⬅️ IMPORTANT
+
+  /* 👉 2) supprime la sauvegarde normale et les flags offline   */
   localStorage.removeItem("save");
-  achievements = [];
+  localStorage.removeItem("enableOffline");
+  localStorage.removeItem("lastSeen");
+
+  /* 👉 3) compte les resets, si tu utilises ce succès           */
+  localStorage.setItem("resetCount",
+      (parseInt(localStorage.getItem("resetCount")||"0")+1)+"");
+
+  /* 👉 4) remets toutes les variables de jeu à zéro             */
+  cookies = 0;
+  autoClickers = 0;
+  clickPower   = 1;
+  prestigeBonus = 0;
+  globalMultiplier = 1;
+  multiplierCost   = 50;
+  totalClicks = 0;
+  cps = 0;
+
+  /* 👉 5) vide listes de succès affichés (si tu les réinitialises) */
   document.getElementById("achievementsUnlocked").innerHTML = "";
-  document.getElementById("achievementsLocked").innerHTML = `
-    <li>👆 100 clics</li>
-    <li>🍪 1000 cookies</li>
-    <li>🔁 10 autoclickers</li>`;
+  /* …re‐génère ton UL verrouillé si besoin… */
+
+  updateDisplay();          // rafraîchit l’UI
+
+  /* 👉 6) recharge la page pour repartir clean */
   location.reload();
+
+  resetTalents();
+  localStorage.removeItem("unlockedAchievements");
+  unlockedAchievements = [];
+  document.getElementById("achievementsUnlocked").innerHTML = "";
+  localStorage.removeItem("achievement_reset_addict");
+  localStorage.removeItem("achievement_secret_mode");
+  localStorage.removeItem("achievement_konami_master");
+
+  // Supprime les succès spéciaux
+localStorage.removeItem("unlockedAchievements");
+localStorage.removeItem("achievement_reset_addict");
+localStorage.removeItem("achievement_secret_mode");
+localStorage.removeItem("achievement_konami_master");
+
+// OU version dynamique
+for (let key in localStorage) {
+  if (key.startsWith("achievement_")) {
+    localStorage.removeItem(key);
+  }
 }
+
+// Nettoie affichage et variables
+unlockedAchievements = [];
+document.getElementById("achievementsUnlocked").innerHTML = "";
+resetAddictUnlocked = false;
+secretModeUnlocked = false;
+konamiMasterUnlocked = false;
+
+}
+
+
 function desespoir() {
   alert("NO NOO LA POLIZIA 😭");
 }
@@ -471,34 +607,291 @@ setInterval(checkAchievements, 5000);
 })();
 
 function triggerRandomEvent() {
-  const roll = Math.random() * 100;
-  let message = "";
+  /* 1) chance ajustée par le talent “Événements rares +” */
+  const boost   = window.eventRarityBoost || 1;           // 1 (normal) ou 1.5
+  const roll    = Math.random() * 100 / boost;            // ← seule fois
+  let  message  = "";
 
-  if (roll < 60) { // Commun
-    const bonus = Math.floor(Math.random() * 20 + 10);
+  if (roll < 55) {                                        // Commun
+    const bonus = Math.floor(Math.random() * 20 + 10);    // 10-29 cookies
     cookies += bonus;
     message = `🟢 Bonus commun : +${bonus} cookies`;
-  } else if (roll < 90) { // Rare
+
+  } else if (roll < 85) {                                 // Rare
     autoClickers++;
     message = `🔵 Rare : +1 auto-clicker !`;
-  } else if (roll < 99) { // Épique
+
+  } else if (roll < 98) {                                 // Épique
     globalMultiplier++;
     message = `🟣 Épique : multiplicateur +1 !`;
-  } else { // Légendaire
+
+  } else if (roll < 99.5) {                               // Légendaire
     cookies *= 2;
     message = `🟡 Légendaire : Cookies x2 !`;
+
+  } else {                                                // Bonus interactif
+    message = "🌟 BONUS INTERACTIF : Clique les cookies flottants !";
+    for (let i = 0; i < 7; i++) {
+      spawnFloatingCookie("🍪 +77", () => {
+        cookies += 77;
+        updateDisplay();
+      });
+    }
   }
 
-  // Afficher dans l’UI
-  document.getElementById("event").textContent = message;
-  eventLog.unshift(message); // Ajoute en haut de la pile
+  /* 2) Affiche + log */
+  const eventDiv = document.getElementById("event");
+  eventDiv.textContent = message;
+
+  eventLog.unshift(message);
   document.getElementById("event-log").innerHTML =
     eventLog.slice(0, 5).map(e => `<div>${e}</div>`).join("");
   updateDisplay();
+
+  /* 3) Efface automatiquement le message entre 5 et 10 s */
+  const duration = 5000 + Math.random() * 5000;           // 5-10 s
+  setTimeout(() => {
+    if (eventDiv.textContent === message) {               // évite d’effacer un nouveau msg
+      eventDiv.textContent = "";
+    }
+  }, duration);
 }
 
-// Déclenche un événement toutes les 30 secondes
-setInterval(triggerRandomEvent, 30000);
+
+function spawnFloatingCookie(text, bonusCallback) {
+  const el = document.createElement("div");
+  el.textContent = text;
+  el.style.position = "absolute";
+  el.style.top = Math.random() * 80 + 10 + "%";
+  el.style.left = Math.random() * 80 + 10 + "%";
+  el.style.padding = "10px 14px";
+  el.style.background = "#ffc107";
+  el.style.color = "#000";
+  el.style.borderRadius = "12px";
+  el.style.fontWeight = "bold";
+  el.style.cursor = "pointer";
+  el.style.boxShadow = "0 0 10px #fff";
+  el.style.transition = "transform 0.2s ease";
+  el.style.pointerEvents = "auto";
+  el.style.zIndex = 10000;
+
+  el.onclick = () => {
+    bonusCallback();
+    el.remove();
+  };
+
+  document.getElementById("floating-events").appendChild(el);
+  setTimeout(() => el.remove(), 10000); // Disparaît après 10 sec si non cliqué
+}
+
+function spawnBonusCookieRandomly() {
+  const delay = Math.random() * 20000 + 10000; // entre 10k et 30k ms (10-30s)
+  setTimeout(() => {
+    spawnFloatingCookie("🍪 +99", () => {
+      cookies += 99;
+      updateDisplay();
+    });
+    spawnBonusCookieRandomly(); // relancer pour boucle infinie
+  }, delay);
+}
+
+/* ------------ CONFIG ---------------------------------- */
+const CYCLE_SECONDS   = 600;   // 10 min
+const DISPLAY_FORMAT  = true;  // mm:ss au lieu de valeur brute
+/* ------------------------------------------------------- */
+
+let eventCountdown = CYCLE_SECONDS; // temps restant (en s)
+let eventActive    = false;         // false = attente, true = événement affiché
+
+setInterval(() => {
+  eventCountdown--;
+
+  /* -- Quand le compte à zéro arrive ------------------- */
+  if (eventCountdown <= 0) {
+
+    if (!eventActive) {             // ► LANCER l’événement
+      triggerRandomEvent();         //  (ta fonction existe déjà)
+      eventActive    = true;
+      eventCountdown = CYCLE_SECONDS;   // durée d’affichage (10 min)
+
+    } else {                        // ► TERMINER l’événement
+      document.getElementById("event").textContent = "";
+      eventActive    = false;
+      eventCountdown = CYCLE_SECONDS;   // nouvelle attente (10 min)
+    }
+  }
+
+  /* -- Affichage du timer ------------------------------ */
+  const out = DISPLAY_FORMAT
+      ? `${Math.floor(eventCountdown/60)
+           .toString().padStart(2,"0")}:${(eventCountdown%60)
+           .toString().padStart(2,"0")}`
+      : eventCountdown;
+
+  document.getElementById("eventCountdown").textContent = out;
+
+}, 1000);
+
+
+spawnBonusCookieRandomly(); // lancer une première fois
+
+/* === TALENTS (10) =============================================== */
+const TALENT_COUNT = 10;
+let talentPoints   = +localStorage.getItem("talentPoints") || 0;
+const talents      = JSON.parse(localStorage.getItem("talents")||"[]");
+while (talents.length < TALENT_COUNT) talents.push(false);
+
+function saveTalents(){
+  localStorage.setItem("talentPoints", talentPoints);
+  localStorage.setItem("talents", JSON.stringify(talents));
+}
+
+/* ⏹️ Stocke ici tous les interval-ID créés par les talents */
+window.talentIntervals ??= [];
+
+/* 🔓 Achat d’un talent ------------------------------------------------ */
+function unlockTalent(i){
+  if (talents[i]) return;               // déjà acquis
+  if (i>0 && !talents[i-1]) return;     // progression
+  if (talentPoints<=0) return;
+
+  talents[i] = true;
+  talentPoints--;
+  document.getElementById("talentPoints").textContent = talentPoints;
+  const card = document.querySelectorAll(".talent-card")[i];
+  card.classList.remove("locked");
+  card.style.borderColor = "#50fa7b";
+
+  activateTalentEffect(i);
+  saveTalents();
+}
+
+/* 🛠️ Effets réels ---------------------------------------------------- */
+function activateTalentEffect(i){
+  switch (i){
+    case 0: /* 💪 Force du clic */
+      clickPower += 1;
+      break;
+
+    case 1: /* ⚙️ AutoPro : +1 auto-clicker toutes 5 min */
+      if (!window.autoProInstalled){
+        window.autoProInstalled = true;
+        window.talentIntervals.push(setInterval(()=>{autoClickers++;updateDisplay();},300000));
+      }
+      break;
+
+    case 2: /* 🌙 Cookies offline */
+      localStorage.setItem("enableOffline","1");
+      break;
+
+    case 3: /* 🎁 Chance boostée ×1.5 */
+      window.eventRarityBoost = 1.5;
+      updateDisplay();
+      break;
+
+    case 4: /* 🔄 Double prestige */
+      window.doublePrestige = true;
+      break;
+
+    case 5: /* 👻 Clic fantôme toutes 5 s */
+      if (!window.ghostClickInstalled){
+        window.ghostClickInstalled = true;
+        window.talentIntervals.push(setInterval(()=>clickCookie(),5000));
+      }
+      break;
+
+    case 6: /* 💬 Commentateur cosmique */
+      if (!window.commentatorInstalled){
+        window.commentatorInstalled = true;
+        const msgs = [
+          "La matrice du cookie s'effondre…",
+          "Un ancien clic murmure…",
+          "Ton doigt guide le destin."
+        ];
+        window.talentIntervals.push(setInterval(()=>{
+          eventLog.unshift(msgs[Math.random()*msgs.length|0]);
+        },15000));
+      }
+      break;
+
+    case 7: /* 🧊 Inertie préservée (timestamp déjà géré) */
+      break;
+
+    case 8: /* 🎲 Événement truqué */
+      if (!window.riggedInstalled){
+        window.riggedInstalled = true;
+        let rig = 0, orig = triggerRandomEvent;
+        triggerRandomEvent = function(){
+          rig++;
+          if (rig === 5){
+            rig = 0;
+            const _r = Math.random;
+            Math.random = () => 0.9 + _r()*0.1;
+            orig();
+            Math.random = _r;
+          } else orig();
+        };
+      }
+      break;
+
+    case 9: /* 🧤 Clic miroir 5 % */
+      if (!window.mirrorInstalled){
+        window.mirrorInstalled = true;
+        const origClick = clickCookie;
+        clickCookie = function(){
+          origClick();
+          if (Math.random() < 0.05) origClick();
+        };
+      }
+      break;
+  }
+}
+
+/* 🚀 Applique les talents déjà débloqués au chargement -------------- */
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("talentPoints").textContent = talentPoints;
+  talents.forEach((t,idx)=>{
+    if(t){
+      const card=document.querySelectorAll(".talent-card")[idx];
+      card.classList.remove("locked");
+      card.style.borderColor="#50fa7b";
+      activateTalentEffect(idx);
+    }
+  });
+});
+
+/* 🗑️ Réinitialisation complète des talents (appelle dans resetGame) */
+function resetTalents(){
+  talentPoints = 0;
+  talents.fill(false);
+  saveTalents();
+
+  /* Réinitialise visuel */
+  document.querySelectorAll(".talent-card").forEach(el=>{
+    el.classList.add("locked");
+    el.style.borderColor="#444";
+  });
+
+  /* Vide tous les intervals créés */
+  window.talentIntervals.forEach(id=>clearInterval(id));
+  window.talentIntervals = [];
+  window.autoProInstalled = window.ghostClickInstalled =
+  window.commentatorInstalled = window.riggedInstalled =
+  window.mirrorInstalled = false;
+  window.eventRarityBoost = 1;
+  window.doublePrestige   = false;
+  updateDisplay();
+}
+
+/* === Cookies offline simple --------------------------------------- */
+window.addEventListener("beforeunload",()=>{
+  if(localStorage.getItem("enableOffline")==="1")
+    localStorage.setItem("lastSeen",Date.now());
+});
+const last = localStorage.getItem("lastSeen");
+if(last && localStorage.getItem("enableOffline")==="1"){
+  cookies += Math.floor((Date.now()-last)/1000)*clickPower;
+}
 
 </script>
 </body>
