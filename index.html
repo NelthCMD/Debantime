@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Cookie Clicker Brainrot</title>
+  <style>
+    body{background:#0f0f1a;color:#f0f0f0;font-family:"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px;margin:0}
+    h1,h2{color:#8be9fd;margin:5px 0}
+    .countdown-container{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:800px;width:100%;margin-bottom:40px}
+    .time-box{background:#1a1a2e;border-radius:16px;padding:20px;text-align:center;box-shadow:0 0 10px rgba(0,0,0,.5);position:relative}
+    .time-box h2{font-size:2.5em;margin:0}
+    .bar-container{position:absolute;bottom:0;left:0;height:6px;width:100%;background:#2e2e3a;border-radius:0 0 16px 16px;overflow:hidden}
+    .bar{height:100%;width:0;background:linear-gradient(90deg,#00d2ff,#3a47d5);transition:width 1s linear}
+    .clicker{background:#1a1a2e;padding:30px;border-radius:16px;box-shadow:0 0 15px rgba(0,0,0,.5);text-align:center;width:90%;max-width:500px}
+    .cookie{width:120px;height:120px;border-radius:50%;background:url('https://cdn.discordapp.com/attachments/1330726807229436004/1386095520858247309/supergrave.PNG?ex=6858758c&is=6857240c&hm=1ab6353353329bdd7feee3fefef39d11a5af9412c4b432c982a31b0111d71c54&') no-repeat center/cover;margin:20px auto;cursor:pointer;transition:transform .1s}
+    .cookie:active{transform:scale(.9)}
+    button{margin:8px;padding:10px 20px;background:#3a47d5;color:#fff;border:none;border-radius:8px;cursor:pointer}
+    button:hover{background:#5f66e8}
+    #event{margin-top:10px;font-weight:bold;color:#f1fa8c;min-height:24px}
+    #stats{margin-top:10px;font-size:.9em;color:#bbb}
+    .sidebar,.sidebar-left{position:fixed;top:20px;width:240px;background:#1a1a2e;padding:20px;border-radius:12px;box-shadow:0 0 10px rgba(0,0,0,.6);font-size:.9em;overflow-y:auto;max-height:90vh}
+    .sidebar{right:20px}
+    .sidebar-left{left:20px}
+    .sidebar h3,.sidebar-left h3{margin:0 0 8px}
+    .sidebar h3{color:#ffb86c}
+    .sidebar-left h3{color:#50fa7b}
+    .sidebar details{margin-bottom:10px}
+    .sidebar-left ul{padding-left:20px}
+  </style>
+</head>
+<body>
+  <h1>⏳ Temps restant avant le déban 😭</h1>
+  <div class="countdown-container">
+    <div class="time-box"><h2 id="days">0</h2><span>Jours</span><div class="bar-container"><div class="bar" id="bar-days"></div></div></div>
+    <div class="time-box"><h2 id="hours">0</h2><span>Heures</span><div class="bar-container"><div class="bar" id="bar-hours"></div></div></div>
+    <div class="time-box"><h2 id="minutes">0</h2><span>Minutes</span><div class="bar-container"><div class="bar" id="bar-minutes"></div></div></div>
+    <div class="time-box"><h2 id="seconds">0</h2><span>Secondes</span><div class="bar-container"><div class="bar" id="bar-seconds"></div></div></div>
+  </div>
+  <div id="message"></div>
+
+  <div class="clicker">
+    <h2>🍪 Cookie Clicker Brainrot</h2>
+    <div class="cookie" onclick="clickCookie()"></div>
+    <div id="cookie-count">Cookies : 0</div>
+    <div id="stats">CPS: 0 | Clics: 0 | Prestige: 0x</div>
+    <button onclick="buyUpgrade()">Acheter Auto-Click (10 cookies)</button>
+    <button onclick="buyMultiplier()">Multiplicateur (coût : <span id='multCost'>50</span>)</button>
+    <button onclick="prestige()">Prestige (10 000 cookies)</button>
+    <button onclick="desespoir()">Crier au désespoir</button>
+    <button onclick="resetGame()" style="background:#ff5555">Réinitialiser</button>
+
+<button onclick="toggleSecret()">Activer mode secret</button>
+
+  <div id="event"></div>
+
+<div id="event-log"
+     style="margin-top:15px;font-size:.85em;text-align:left;max-height:150px;overflow-y:auto;background:#121225;padding:10px;border-radius:8px">
+</div>
+
+  <div class="sidebar" id="sidebar">
+    <h3>📊 Stats joueur</h3>
+    <div>✨ Prestige : <span id="infoPrestige">0</span></div>
+    <div>🔁 Auto-clickers : <span id="infoAuto">0</span></div>
+    <div>👆 Puissance clic : <span id="infoClic">1</span></div>
+    <div>📈 Multiplicateur : <span id="infoMulti">1</span>x</div>
+    <h3>🎲 Rareté des événements</h3>
+    <details><summary>🟢 Commun : 60%</summary><ul><li>Bonus mineurs (cookies, clics…)</li></ul></details>
+    <details><summary>🔵 Rare : 30%</summary><ul><li>Multiplicateurs légers, auto-clicker bonus…</li></ul></details>
+    <details><summary>🟣 Épique : 9%</summary><ul><li>Gros boosts, prestige +1…</li></ul></details>
+    <details><summary>🟡 Légendaire : 1%</summary><ul><li>Récompenses massives (×2 cookies, +5 auto…)</li></ul></details>
+  </div>
+
+  <div class="sidebar-left" id="achievementSidebar">
+    <h3>🏆 Succès débloqués</h3>
+    <ul id="achievementsUnlocked"></ul>
+    <h3>🔒 À débloquer</h3>
+    <ul id="achievementsLocked">
+  <li>👆 100 clics</li>
+  <li>🍪 1000 cookies</li>
+  <li>🔁 10 autoclickers</li>
+  <li>🧨 1000 clics</li>
+  <li>💰 10k cookies</li>
+  <li>🧟 Survivant 10 min</li>
+      <li>👆 100 clics</li>
+      <li>🍪 1000 cookies</li>
+      <li>🔁 10 autoclickers</li>
+    
+  <li>🕳️ Cliquez 666 fois</li>
+  <li>🌑 Joué à minuit</li>
+  <li>👻 Page restée ouverte 1h</li>
+  <li>🎩 Cliquez 42 fois en 10 secondes</li>
+  <li>🐱‍👤 Activer le mode secret</li>
+  <li>🔱 Prestige x10</li>
+<li>💸 1 million de cookies</li>
+<li>🤖 100 auto-clickers</li>
+<li>🧠 10 000 clics</li>
+<li>🕰️ Joué pendant 3h</li>
+<li>🌌 Prestige x25</li>
+<li>📉 Réinitialisé 10 fois</li>
+<li>🐉 Ultra clic : 500 clics en 10 sec</li>
+
+  </ul>
+  </div>
+
+  <script>
+// === Script JavaScript complet ===
+
+const bar_days = document.getElementById("bar-days"),
+      bar_hours = document.getElementById("bar-hours"),
+      bar_minutes = document.getElementById("bar-minutes"),
+      bar_seconds = document.getElementById("bar-seconds");
+const targetDate = new Date("2025-06-27T20:28:00Z");
+
+function updateCountdown() {
+  const now = new Date(), total = targetDate - now;
+  if (total <= 0) {
+    document.getElementById("message").textContent = "✅ Tu es débanni !";
+    return;
+  }
+  const s = Math.floor(total / 1e3) % 60,
+        m = Math.floor(total / 6e4) % 60,
+        h = Math.floor(total / 36e5) % 24,
+        d = Math.floor(total / 864e5);
+  days.textContent = d;
+  hours.textContent = h;
+  minutes.textContent = m;
+  seconds.textContent = s;
+  bar_days.style.width = Math.min((d % 30) / 30 * 100, 100) + "%";
+  bar_hours.style.width = (h / 24 * 100) + "%";
+  bar_minutes.style.width = (m / 60 * 100) + "%";
+  bar_seconds.style.width = (s / 60 * 100) + "%";
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+let cookies = 0, autoClickers = 0, clickPower = 1, prestigeBonus = 0;
+let globalMultiplier = 1, multiplierCost = 50, totalClicks = 0, cps = 0;
+let achievements = [];
+let rapidClicks = 0;
+document.addEventListener("click", () => {
+  rapidClicks++;
+  setTimeout(() => rapidClicks = Math.max(0, rapidClicks - 1), 10000);
+});
+const eventLog = [];
+
+function updateDisplay() {
+  document.getElementById("cookie-count").textContent = "Cookies : " + Math.floor(cookies);
+  document.getElementById("stats").textContent = `CPS: ${cps.toFixed(1)} | Clics: ${totalClicks} | Prestige: ${prestigeBonus}x`;
+  infoPrestige.textContent = prestigeBonus;
+  infoAuto.textContent = autoClickers;
+  infoClic.textContent = clickPower;
+  infoMulti.textContent = globalMultiplier;
+  multCost.textContent = multiplierCost;
+}
+
+function clickCookie() {
+  cookies += clickPower * globalMultiplier * (1 + prestigeBonus);
+  totalClicks++;
+  updateDisplay();
+}
+function buyUpgrade() {
+  if (cookies < 10) return alert("Pas assez de cookies !");
+  cookies -= 10;
+  autoClickers++;
+  updateDisplay();
+}
+function buyMultiplier() {
+  if (cookies < multiplierCost) return alert("Pas assez de cookies !");
+  cookies -= multiplierCost;
+  globalMultiplier++;
+  multiplierCost *= 2;
+  updateDisplay();
+}
+function prestige() {
+  if (cookies < 10000) return alert("Encore trop faible pour transcender.");
+  if (confirm("Prestige ? Tu perds tout mais gagnes un bonus permanent !")) {
+    prestigeBonus++;
+    cookies = 0;
+    autoClickers = prestigeBonus; // +1 autoClicker par prestige
+    clickPower = 1 + prestigeBonus; // +1 puissance de clic par prestige
+    globalMultiplier = 1;
+    multiplierCost = 50;
+    totalClicks = 0;
+    cps = 0;
+    achievements = [];
+
+    document.getElementById("achievementsUnlocked").innerHTML = "";
+    document.getElementById("achievementsLocked").innerHTML = `
+      <li>👆 100 clics</li>
+      <li>🍪 1000 cookies</li>
+      <li>🔁 10 autoclickers</li>
+      <li>🧨 1000 clics</li>
+      <li>💰 10k cookies</li>
+      <li>🧟 Survivant 10 min</li>
+      <li>🕳️ Cliquez 666 fois</li>
+      <li>🌑 Joué à minuit</li>
+      <li>👻 Page restée ouverte 1h</li>
+      <li>🎩 Cliquez 42 fois en 10 secondes</li>
+      <li>🐱‍👤 Activer le mode secret</li>
+      <li>🔱 Prestige x10</li>
+      <li>💸 1 million de cookies</li>
+      <li>🤖 100 auto-clickers</li>
+      <li>🧠 10 000 clics</li>
+      <li>🕰️ Joué pendant 3h</li>
+      <li>🌌 Prestige x25</li>
+      <li>📉 Réinitialisé 10 fois</li>
+      <li>🐉 Ultra clic : 500 clics en 10 sec</li>
+    `;
+    updateDisplay();
+  }
+}
+function resetGame() {
+  if (!confirm("Tout effacer ?")) return;
+  localStorage.setItem("resetCount", (parseInt(localStorage.getItem("resetCount") || "0") + 1).toString());
+  localStorage.removeItem("save");
+  achievements = [];
+  document.getElementById("achievementsUnlocked").innerHTML = "";
+  document.getElementById("achievementsLocked").innerHTML = `
+    <li>👆 100 clics</li>
+    <li>🍪 1000 cookies</li>
+    <li>🔁 10 autoclickers</li>`;
+  location.reload();
+}
+function desespoir() {
+  alert("NO NOO LA POLIZIA 😭");
+}
+setInterval(() => {
+  const gained = autoClickers * globalMultiplier * (1 + prestigeBonus);
+  cookies += gained;
+  cps = gained;
+  updateDisplay();
+}, 1000);
+
+function save() {
+  localStorage.setItem("save", JSON.stringify({
+    cookies, autoClickers, clickPower, prestigeBonus,
+    globalMultiplier, multiplierCost, totalClicks, achievements
+  }));
+}
+function load() {
+  const s = localStorage.getItem("save");
+  if (!s) return;
+  const d = JSON.parse(s);
+  cookies = d.cookies || 0;
+  autoClickers = d.autoClickers || 0;
+  clickPower = d.clickPower || 1;
+  prestigeBonus = d.prestigeBonus || 0;
+  globalMultiplier = d.globalMultiplier || 1;
+  multiplierCost = d.multiplierCost || 50;
+  totalClicks = d.totalClicks || 0;
+  achievements = d.achievements || [];
+// Restaurer succès affichés
+  for (const id of achievements) {
+    const labels = {
+      "c100": "👆 100 clics",
+      "ck1k": "🍪 1000 cookies",
+      "ac10": "🔁 10 autoclickers",
+      "mega1k": "🧨 1000 clics",
+      "rich10k": "💰 10k cookies",
+      "zombie": "🧟 Survivant 10 min",
+      "darkclick": "🕳️ Cliquez 666 fois",
+      "ninja": "🐱‍👤 Mode secret activé",
+      "troll": "😵 Reset addict",
+      "invisibleEgg": "🥚 Œuf caché découvert",
+      "foxie": "🦊 Navigateur loyal",
+      "leet": "⌚ L'heure sacrée : 13h37",
+      "konami": "🎮 Konami master",
+    };
+    if (labels[id]) {
+      const li = document.createElement("li");
+      li.textContent = labels[id];
+      document.getElementById("achievementsUnlocked").appendChild(li);
+      [...document.getElementById("achievementsLocked").children].forEach(child => {
+        if (child.textContent === labels[id]) child.remove();
+      });
+    }
+  }
+}
+load();
+updateDisplay();
+setInterval(save, 5000);
+
+let timePlayed = 0; // ✅ Temps total joué
+
+
+function checkAchievements() {
+  const unlocked = [];
+  const unlock = (id, label) => {
+    if (!achievements.includes(id)) {
+      achievements.push(id);
+      unlocked.push(label);
+      const li = document.createElement("li");
+      li.textContent = label;
+      document.getElementById("achievementsUnlocked").appendChild(li);
+      const lockedList = document.getElementById("achievementsLocked");
+      [...lockedList.children].forEach(child => {
+        if (child.textContent === label) lockedList.removeChild(child);
+      });
+
+      // animation pour mystères
+      const mysteryIds = ["darkclick","midnight","hourstay","spammer","ninja","invisibleEgg","foxie","leet","konami"];
+      if (mysteryIds.includes(id)) {
+        const flash = document.createElement("div");
+        flash.textContent = "🎉 Succès mystère débloqué !";
+        flash.style.position = "fixed";
+        flash.style.top = "30%";
+        flash.style.left = "50%";
+        flash.style.transform = "translate(-50%, -50%)";
+        flash.style.background = "#111";
+        flash.style.color = "#fff";
+        flash.style.padding = "20px";
+        flash.style.borderRadius = "12px";
+        flash.style.zIndex = "9999";
+        flash.style.fontSize = "1.5em";
+        flash.style.boxShadow = "0 0 20px #fff";
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 3000);
+      }
+      // animation spéciale œuf
+      if (id === "invisibleEgg") {
+        const glow = document.createElement("div");
+        glow.textContent = "🥚 Succès secret découvert !";
+        glow.style.position = "fixed";
+        glow.style.top = "30%";
+        glow.style.left = "50%";
+        glow.style.transform = "translate(-50%, -50%)";
+        glow.style.background = "gold";
+        glow.style.color = "#000";
+        glow.style.padding = "25px";
+        glow.style.borderRadius = "14px";
+        glow.style.zIndex = "10000";
+        glow.style.fontSize = "1.6em";
+        glow.style.fontWeight = "bold";
+        glow.style.boxShadow = "0 0 30px gold";
+        document.body.appendChild(glow);
+        setTimeout(() => glow.remove(), 4000);
+      }
+    }
+  };
+
+  // Succès standards
+  if (totalClicks >= 100) unlock("c100", "👆 100 clics");
+  if (cookies >= 1000) unlock("ck1k", "🍪 1000 cookies");
+  if (autoClickers >= 10) unlock("ac10", "🔁 10 autoclickers");
+
+  // Nouveaux succès
+  if (totalClicks >= 1000) unlock("mega1k", "🧨 1000 clics");
+  if (cookies >= 10000) unlock("rich10k", "💰 10k cookies");
+  if (timePlayed >= 600) unlock("zombie", "🧟 Survivant 10 min");
+  if (totalClicks >= 666) unlock("darkclick", "🕳️ Cliquez 666 fois");
+  if (prestigeBonus >= 10) unlock("prestige10", "🔱 Prestige x10");
+if (cookies >= 1000000) unlock("millionaire", "💸 1 million de cookies");
+if (autoClickers >= 100) unlock("auto100", "🤖 100 auto-clickers");
+if (totalClicks >= 10000) unlock("click10k", "🧠 10 000 clics");
+if (timePlayed >= 10800) unlock("longplay", "🕰️ Joué pendant 3h");
+if (prestigeBonus >= 25) unlock("prestige25", "🌌 Prestige x25");
+
+const resetCountHardcore = parseInt(localStorage.getItem("resetCount") || "0");
+if (resetCountHardcore >= 10) unlock("reset10", "📉 Réinitialisé 10 fois");
+
+if (rapidClicks >= 500) unlock("ultraclick", "🐉 Ultra clic : 500 clics en 10 sec");
+
+  // Mystiques
+  const date = new Date();
+  if (date.getHours() === 0) unlock("midnight", "🌑 Joué à minuit");
+  if (navigator.userAgent.toLowerCase().includes("firefox")) unlock("foxie", "🦊 Navigateur loyal");
+  if (date.getHours() === 13 && date.getMinutes() === 37) unlock("leet", "⌚ L'heure sacrée : 13h37");
+
+  const resetCount = parseInt(localStorage.getItem("resetCount") || "0");
+  if (resetCount >= 5) unlock("troll", "😵 Reset addict");
+
+  if (totalClicks === 123 && autoClickers === 4 && globalMultiplier === 2) {
+    unlock("invisibleEgg", "🥚 Œuf caché découvert");
+  }
+
+  // Mode secret et spam
+  if (rapidClicks >= 42) unlock("spammer", "🎩 Cliquez 42 fois en 10 secondes");
+  if (localStorage.getItem("secret") === "true") unlock("ninja", "🐱‍👤 Mode secret activé");
+
+  // Konami code via flag
+  if (localStorage.getItem("konamiUnlock") === "1") unlock("konami", "🎮 Konami master");
+
+  if (unlocked.length) alert("Succès débloqués :" + unlocked.join(""));
+}
+
+setInterval(checkAchievements, 5000);
+setInterval(() => timePlayed++, 1000); // ✅ compteur de temps
+  const unlocked = [];
+  const unlock = (id, label) => {
+
+      const isMystery = ["darkclick", "midnight", "hourstay", "spammer", "ninja"].includes(id);
+      if (isMystery) {
+        const flash = document.createElement("div");
+        flash.textContent = "🎉 Succès mystère débloqué !";
+        flash.style.position = "fixed";
+        flash.style.top = "30%";
+        flash.style.left = "50%";
+        flash.style.transform = "translate(-50%, -50%)";
+        flash.style.background = "#111";
+        flash.style.color = "#fff";
+        flash.style.padding = "20px";
+        flash.style.borderRadius = "12px";
+        flash.style.zIndex = "9999";
+        flash.style.fontSize = "1.5em";
+        flash.style.boxShadow = "0 0 20px #fff";
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 3000);
+if (id === "invisibleEgg") {
+        const glow = document.createElement("div");
+        glow.textContent = "🥚 Succès secret découvert !";
+        glow.style.position = "fixed";
+        glow.style.top = "30%";
+        glow.style.left = "50%";
+        glow.style.transform = "translate(-50%, -50%)";
+        glow.style.background = "gold";
+        glow.style.color = "#000";
+        glow.style.padding = "25px";
+        glow.style.borderRadius = "14px";
+        glow.style.zIndex = "10000";
+        glow.style.fontSize = "1.6em";
+        glow.style.fontWeight = "bold";
+        glow.style.boxShadow = "0 0 30px gold";
+        document.body.appendChild(glow);
+        setTimeout(() => glow.remove(), 4000);
+      }
+      }
+
+    if (!achievements.includes(id)) {
+      achievements.push(id);
+      unlocked.push(label);
+      const li = document.createElement("li");
+      li.textContent = label;
+      document.getElementById("achievementsUnlocked").appendChild(li);
+      const lockedList = document.getElementById("achievementsLocked");
+      [...lockedList.children].forEach(child => {
+        if (child.textContent === label) lockedList.removeChild(child);
+      });
+    }
+  };
+  if (totalClicks >= 100) unlock("c100", "👆 100 clics");
+  if (cookies >= 1000) unlock("ck1k", "🍪 1000 cookies");
+  if (autoClickers >= 10) unlock("ac10", "🔁 10 autoclickers");
+  if (unlocked.length) alert("Succès débloqués:" + unlocked.join(""));
+
+function toggleSecret() {
+  const enabled = localStorage.getItem("secret") === "true";
+  if (enabled) {
+    alert("Mode secret désactivé.");
+    localStorage.removeItem("secret");
+  } else {
+    alert("🐱‍👤 Mode secret activé !");
+    localStorage.setItem("secret", "true");
+  }
+}
+
+setInterval(checkAchievements, 5000);
+  
+(function(){
+  if (window.konamiInit) return;
+  window.konamiInit = true;
+  const konamiCode = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+  let inputSequence = [];
+  document.addEventListener("keydown", (e) => {
+    inputSequence.push(e.key);
+    if (inputSequence.length > 10) inputSequence.shift();
+    if (inputSequence.join(",") === konamiCode.join(",")) {
+      localStorage.setItem("konamiUnlock", "1");
+      alert("🎮 Konami code réussi !");
+    }
+  });
+})();
+
+function triggerRandomEvent() {
+  const roll = Math.random() * 100;
+  let message = "";
+
+  if (roll < 60) { // Commun
+    const bonus = Math.floor(Math.random() * 20 + 10);
+    cookies += bonus;
+    message = `🟢 Bonus commun : +${bonus} cookies`;
+  } else if (roll < 90) { // Rare
+    autoClickers++;
+    message = `🔵 Rare : +1 auto-clicker !`;
+  } else if (roll < 99) { // Épique
+    globalMultiplier++;
+    message = `🟣 Épique : multiplicateur +1 !`;
+  } else { // Légendaire
+    cookies *= 2;
+    message = `🟡 Légendaire : Cookies x2 !`;
+  }
+
+  // Afficher dans l’UI
+  document.getElementById("event").textContent = message;
+  eventLog.unshift(message); // Ajoute en haut de la pile
+  document.getElementById("event-log").innerHTML =
+    eventLog.slice(0, 5).map(e => `<div>${e}</div>`).join("");
+  updateDisplay();
+}
+
+// Déclenche un événement toutes les 30 secondes
+setInterval(triggerRandomEvent, 30000);
+
+</script>
+</body>
+</html>
