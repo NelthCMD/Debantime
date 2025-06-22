@@ -90,7 +90,7 @@
     <div id="stats">CPS: 0 | Clics: 0 | Prestige: 0x</div>
     <button onclick="buyUpgrade()">Acheter Auto-Click (<span id="autoCost">10</span> cookies)</button>
     <button onclick="buyMultiplier()">Multiplicateur (coût : <span id='multCost'>50</span>)</button>
-    <button onclick="prestige()">Prestige (10 000 cookies)</button>
+    <button onclick="prestige()">Prestige (100 000 cookies)</button>
     <button onclick="desespoir()">Crier au désespoir</button>
     <button onclick="resetGame()" style="background:#ff5555">Réinitialiser</button>
 
@@ -108,7 +108,7 @@
   <div class="sidebar" id="sidebar">
     <h3>📊 Stats joueur</h3>
     <div>✨ Prestige : <span id="infoPrestige">0</span></div>
-    <div>🔁 Auto-clickers : <span id="infoAuto">0</span></div>
+    <div>🤖 Auto-clickers : <span id="statAutoClickers">0</span></div>
     <div>👆 Puissance clic : <span id="infoClic">1</span></div>
     <div>📈 Multiplicateur : <span id="infoMulti">1</span>x</div>
     <div>🍀 Chance : <span id="infoChance">1.0</span>x</div>
@@ -229,10 +229,12 @@ function updateDisplay() {
   document.getElementById("stats").textContent = `CPS: ${cps.toFixed(1)} | Clics: ${totalClicks} | Prestige: ${prestigeBonus}x`;
   infoPrestige.textContent = prestigeBonus;
   document.getElementById("autoCost").textContent = 10 * Math.pow(2, autoClickers);
+  document.getElementById("statAutoClickers").textContent = autoClickers;
   infoClic.textContent = clickPower;
   infoMulti.textContent = globalMultiplier;
   multCost.textContent = multiplierCost;
   infoChance.textContent = (window.eventRarityBoost||1).toFixed(1);
+  
 }
 
 function clickCookie() {
@@ -255,7 +257,7 @@ function buyMultiplier() {
   updateDisplay();
 }
 function prestige() {
-  let prestigeCost = 10000 * Math.pow(2, prestigeBonus);
+  let prestigeCost = 100000 * Math.pow(2, prestigeBonus);
   if (cookies < prestigeCost) return alert(`Il te faut ${prestigeCost} cookies pour transcender.`);
   if (confirm("Prestige ? Tu perds tout mais gagnes un bonus permanent !")) {
     prestigeBonus+= window.doublePrestige ? 2 : 1;
@@ -296,6 +298,9 @@ function prestige() {
     `;
     updateDisplay();
   }
+
+  autoClickers = 0;
+
 }
 function resetGame(){
   if (!confirm("Tout effacer ?")) return;
